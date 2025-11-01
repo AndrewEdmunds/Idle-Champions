@@ -16,6 +16,3 @@ AddOns/*_Addon_Management/AddonManagement.json
 LastGUID*.json
 Current*.json
 SharedFunctions/ScanCodesOverride.json
-AddOns/IC_Core/MemoryRead/Imports/IC_GameVersion64_Import.ahk
-AddOns/IC_Core/MemoryRead/Imports/IC_IdleGameManager64_Import.ahk
-/AddOns/IC_Core/MemoryRead/Imports
