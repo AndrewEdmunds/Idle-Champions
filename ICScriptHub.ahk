@@ -22,7 +22,7 @@ CoordMode, Mouse, Client
 ;Modron Automation Gem Farming Script
 GetScriptHubVersion()
 {
-    return "v4.4.5, 2025-10-24" ; Must be line 25 for version checking to work.
+    return "v4.4.6, 2025-11-03" ; Must be line 25 for version checking to work.
 }
 
 ;class and methods for parsing JSON (User details sent back from a server call)
@@ -51,6 +51,7 @@ global g_MacroButton := A_LineFile . "\..\Images\macro-100x100.png"
 global g_MouseTooltips := {}
 global g_Miniscripts := {}
 global g_globalTempSettingsFiles := {}
+global g_AreAddonsFinishedLoading := False
 
 ;Load themes
 GUIFunctions.LoadTheme()
@@ -140,6 +141,8 @@ Launch_Clicked()
     }
     Process, Exist, % g_UserSettings[ "ExeName"]
     g_SF.PID := ErrorLevel
+    ; Process, Priority, % g_SF.PID, High
+    Process, Priority, % g_SF.PID, Realtime
 }
 
 Launch_Macro_Clicked()
@@ -221,6 +224,7 @@ if(IsObject(AddonManagement))
     AddonManagement.BuildToolTips()
 
 Gui, ICScriptHub:Show, NA, % "IC Script Hub" . (g_UserSettings[ "WindowTitle" ] ? (" - " .  g_UserSettings[ "WindowTitle" ]) : "")
+g_AreAddonsFinishedLoading := True
 
 StopMiniscripts()
 {
@@ -266,3 +270,5 @@ MiniScriptWarning()
 ; Refresh GUI after all addons loaded.
 GuiControl, ICScriptHub:Move, ModronTabControl, % "w" . g_TabControlWidth . " h" . g_TabControlHeight
 Gui, ICScriptHub:show, % "w" . g_TabControlWidth+5 . " h" . g_TabControlHeight . " NA"
+
+MsgBox, Official Script Hub Has Moved! Find it at: http://www.github.com/antilectual/Idle-Champions/

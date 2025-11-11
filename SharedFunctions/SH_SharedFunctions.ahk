@@ -315,11 +315,17 @@ class SH_SharedFunctions
     }
 }
 
-; Class used to test if time taken has been completed.
+; Class used to test if time taken has been completed. Not recommended for use with functions called from SetTimer.
 class SH_SharedTimers
 {
     StartTime := 0
-    ; Starts timer on first call. WIll return True on timed out and false when time is left.
+
+    __New()
+    {
+        this.StartTime := 0
+    }
+    
+    ; Starts timer on first call. WIll return True on timed out and false when time is left. timeout of 0 resets timer.
     IsTimeUp(timeout)
     {
         if(this.StartTime == 0)
@@ -327,7 +333,6 @@ class SH_SharedTimers
         this.ElapsedTime := A_TickCount - this.StartTime
         if this.ElapsedTime < timeout
             return False
-        this.StartTime := 0
         return True
     }
 }

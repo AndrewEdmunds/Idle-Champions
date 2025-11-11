@@ -48,6 +48,8 @@ class IC_SharedFunctions_Class extends SH_SharedFunctions
     TotalSilverChests := 0
     TotalGoldChests := 0
     StackedBeforeRestart := False
+    FormationLevelingLock := False
+    FormationSwitchLock := False
 
     __new()
     {
@@ -61,7 +63,7 @@ class IC_SharedFunctions_Class extends SH_SharedFunctions
     ; returns this class's version information (string)
     GetVersion()
     {
-        return "v3.0.7, 2025-10-26"
+        return "v3.0.9, 2025-11-03"
     }
 
     ;Takes input of first and second sets of eight byte int64s that make up a quad in memory. Obviously will not work if quad value exceeds double max.
@@ -279,19 +281,18 @@ class IC_SharedFunctions_Class extends SH_SharedFunctions
 
         Returns: nothing
     */
-    WaitForTransition( spam := "", maxLoopTime := 5000 )
+    WaitForTransition( spam := "", maxLoopTime := 3500 )
     {
         if !this.Memory.ReadTransitioning()
             return
-        StartTime := A_TickCount
-        ElapsedTime := 0
         counter := 0
         sleepTime := 32
+        timeoutTimer := new SH_SharedTimer()
         g_SharedData.LoopString := "Waiting for Transition..."
-        while ( this.Memory.ReadTransitioning() == 1 and ElapsedTime < maxLoopTime )
+        while ( this.Memory.ReadTransitioning() == 1 and !timeoutTimer.IsTimeUp(maxLoopTime))
         {
             ElapsedTime := A_TickCount - StartTime
-            if( ElapsedTime > (counter * sleepTime)) ; input limiter..
+            if (!timeoutTimer.IsTimeUp(counter * sleepTime)) ; input limiter..
             {
                 if(IsObject(spam))
                     this.DirectedInput(,, spam* )
@@ -541,7 +542,7 @@ class IC_SharedFunctions_Class extends SH_SharedFunctions
             return
         }
         if(!IC_BrivGemFarm_Class.BrivFunctions.HasSwappedFavoritesThisRun OR forceCheck)
-            isFormation2 := this.IsCurrentFormation(this.Memory.GetFormationByFavorite(2))
+            isFormation2 := this.IsCurrentFormationLazy(this.Memory.GetFormationByFavorite(2), 2)
         else
             isFormation2 := g_SF.Memory.ReadMostRecentFormationFavorite() == 2
         isWalkZone := this.Settings["PreferredBrivJumpZones"][Mod( this.Memory.ReadCurrentZone(), 50) == 0 ? 50 : Mod( this.Memory.ReadCurrentZone(), 50)] == 0
@@ -560,7 +561,7 @@ class IC_SharedFunctions_Class extends SH_SharedFunctions
             return
         }
         ; Switch if still in modron formation.
-        else if (!g_SF.FormationLock AND g_BrivGemFarm.IsInModronFormation){
+        else if (!g_SF.FormationSwitchLock AND g_BrivGemFarm.IsInModronFormation){
         
               ; Q OR E depending on route.
             if (this.UnBenchBrivConditions(this.Settings))
@@ -568,19 +569,21 @@ class IC_SharedFunctions_Class extends SH_SharedFunctions
             else if (this.BenchBrivConditions(this.Settings))
                 this.DoSwitchFormation(3)
         }
-        if(g_BrivGemFarm.IsInModronFormation AND !this.IsCurrentFormation(g_SF.Memory.GetActiveModronFormation()))
+        if(g_BrivGemFarm.IsInModronFormation AND !this.IsCurrentFormationLazy(g_SF.Memory.GetActiveModronFormation(), 2)) ; using 2 as stack formation ID to ignore taty being in modron.
             g_BrivGemFarm.IsInModronFormation := False
     }
 
     DoSwitchFormation(favoriteNum)
     {
+        Critical, On
         if(favoriteNum == 1)
             this.DirectedInput(,,["{q}"]*) 
         else if(favoriteNum == 2)
             this.DirectedInput(,,["{w}"]*) 
         else if(favoriteNum == 3)
             this.DirectedInput(,,["{e}"]*) 
-        IC_BrivGemFarm_Class.BrivFunctions.HasSwappedFavoritesThisRun := True            
+        IC_BrivGemFarm_Class.BrivFunctions.HasSwappedFavoritesThisRun := True
+        Critical, Off
     }
 
     ; True/False on whether Briv should be benched based on game conditions. (typically swap to E formation)
@@ -672,7 +675,8 @@ class IC_SharedFunctions_Class extends SH_SharedFunctions
             ElapsedTime := A_TickCount - StartTime
             if(ElapsedTime < timeoutVal)
                 this.SetLastActiveWindowWhileWaitingForGameExe(timeoutVal - ElapsedTime)
-            Process, Priority, % this.PID, High
+            ; Process, Priority, % this.PID, High
+            Process, Priority, % this.PID, Realtime
             this.ActivateLastWindow()
             this.Memory.OpenProcessReader()
             ElapsedTime := A_TickCount - StartTime
@@ -1032,7 +1036,7 @@ class IC_SharedFunctions_Class extends SH_SharedFunctions
             if(formationFavoriteNum != 2)
                 this.ToggleAutoProgress(1, true)
             ; if (lastLoopTimedOut) ; use old way, else use new formation check method
-            isCurrentFormation := this.IsCurrentFormation(this.Memory.GetFormationByFavorite(formationFavoriteNum)) ; this.Memory.ReadMostRecentFormationFavorite() == formationFavoriteNum
+            isCurrentFormation := this.IsCurrentFormationLazy(this.Memory.GetFormationByFavorite(formationFavoriteNum), 2) ; this.Memory.ReadMostRecentFormationFavorite() == formationFavoriteNum
             Sleep, sleepTime
         }
     }
